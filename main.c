@@ -1,6 +1,8 @@
 #include <ncurses.h>
 #include <curses.h>
 #include <string.h>
+#include <stdlib.h>
+#include <menu.h>
 
 WINDOW *create_newwin(int height, int width, int starty, int startx);
 void refreshWindows(WINDOW **mainWin, WINDOW **logWin, WINDOW **infoWin);
@@ -24,9 +26,14 @@ int main(int argc, char *argv[]) {
 	attroff(COLOR_PAIR(1));
 	
 	while((ch = getch()) != 'q') {	
-                if(getch() == KEY_RESIZE) {
+                if(ch == KEY_RESIZE) {
+                        delwin(mainWin);
+                        delwin(infoWin);
+                        delwin(logWin);
                         refreshWindows(&mainWin, &logWin, &infoWin);
+                        refresh();
                 }
+                        refresh();
 	}
 	endwin();			/* End curses mode		  */
 	return 0;
@@ -34,8 +41,12 @@ int main(int argc, char *argv[]) {
 }
 
 void refreshWindows(WINDOW **mainWin, WINDOW **logWin, WINDOW **infoWin) {
-        int height, width, starty, startx;
+        endwin();
+        refresh();
+        clear();
 
+        int height, width, starty, startx;
+       
         //MAIN WINDOW POS MATH
 	height = LINES - (LINES / 3);
 	width = COLS / 2;
@@ -46,10 +57,17 @@ void refreshWindows(WINDOW **mainWin, WINDOW **logWin, WINDOW **infoWin) {
 	*mainWin = create_newwin(height, width, starty, startx);
 
         //LOG WINDOW POS MATH
-        height = LINES - (LINES / 3);
-        width = COLS - (COLS / 2);
-        starty =  LINES / 3;	
-        startx = COLS / 2;    
+        if(COLS % 2 == 0) {
+                height = LINES - (LINES / 3);
+                width = COLS - (COLS / 2);
+                starty =  LINES / 3;	
+                startx = COLS / 2;    
+        } else {
+                height = LINES - (LINES / 3);
+                width = COLS - (COLS / 2);
+                starty =  LINES / 3;	
+                startx = COLS / 2;   
+        }
 
 	refresh();
 	*logWin = create_newwin(height, width, starty, startx);
