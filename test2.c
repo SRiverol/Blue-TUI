@@ -3,8 +3,9 @@
 #include <curses.h>
 #include <ncurses.h>
 #include <strings.h>
+#include <stdlib.h>
 
-typedef union _win_border_struct {
+typedef struct _win_border_struct {
 	chtype 	leftSide, rightSide, topSide, bottomSide,  
 	 	topLeft, topRight, bottomLeft, bottomRight;
 
@@ -19,8 +20,8 @@ void initUnion(BORDER *border);
 
 int main() {
         /* Stuff We Will Need*/
-        WIN *win;
-        BORDER *border;
+        WIN *win = malloc(sizeof(WIN));
+        BORDER *border = malloc(sizeof(BORDER));
         int c;
 
 
@@ -40,7 +41,9 @@ int main() {
         while((c = getch()) != 'q') {
 
         }
-        
+        free(win);
+        free(border);
+
         endwin();
         return 0;
 }
