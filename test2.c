@@ -1,73 +1,89 @@
-#include <signal.h>
-#include <stdio.h>
-#include <curses.h>
 #include <ncurses.h>
-#include <strings.h>
+#include <string.h>
 #include <stdlib.h>
 
-typedef struct _win_border_struct {
-	chtype 	leftSide, rightSide, topSide, bottomSide,  
-	 	topLeft, topRight, bottomLeft, bottomRight;
+WINDOW *create_newwin(int height, int width, int starty, int startx);
+void refreshWindows(WINDOW **mainWin, WINDOW **logWin, WINDOW **infoWin);
 
-}BORDER;
+int main(int argc, char *argv[]) {
+    WINDOW *mainWin;
+    WINDOW *infoWin;
+    WINDOW *logWin;
 
-typedef struct _win_struct {
-	BORDER border;
-}WIN;
+    int startx, starty, width, height;
+    int ch;
 
-void renderMainWindow(WIN *win);
-void initUnion(BORDER *border);
+    initscr();          /* Start curses mode */
+    start_color();
+    cbreak();           /* Line buffering disabled, Pass on */
+    keypad(stdscr, TRUE); /* I need that nifty F1 */
 
-int main() {
-        /* Stuff We Will Need*/
-        WIN *win = malloc(sizeof(WIN));
-        BORDER *border = malloc(sizeof(BORDER));
-        int c;
+    init_pair(1, COLOR_BLACK, COLOR_WHITE);
+    init_pair(2, COLOR_BLUE, COLOR_WHITE);
+    init_pair(3, COLOR_RED, COLOR_WHITE);
 
+    refreshWindows(&mainWin, &logWin, &infoWin);
 
-        /* Initialize curses */
-	initscr();
-	start_color();
-        cbreak();
-        noecho();
-	keypad(stdscr, TRUE);
-	init_pair(1, COLOR_WHITE, COLOR_BLACK);
-
-
-        initUnion(border);
-        renderMainWindow(win);
-        refresh();
-
-        while((c = getch()) != 'q') {
-
+    while ((ch = getch()) != 'q') {
+        if (ch == KEY_RESIZE) {
+            delwin(mainWin);
+            delwin(infoWin);
+            delwin(logWin);
+            refreshWindows(&mainWin, &logWin, &infoWin);
+            refresh();
         }
-        free(win);
-        free(border);
+        refresh();
+    }
 
-        endwin();
-        return 0;
+    endwin(); /* End curses mode */
+    return 0;
 }
 
-void initUnion(BORDER *border) {
-        border->leftSide = '|';
-        border->rightSide = '|';
-        border->topSide = '-';
-        border->bottomSide = '-';
-        border->topLeft = '+';
-        border->topRight = '+';
-        border->bottomLeft = '+';
-        border->bottomRight = '+';
-}
-void renderMainWindow(WIN *win) {
-        int x, y, width, height;
-        x = 2;
-        y = 2;
-        width = COLS / 2;
-        height = LINES / 2;
+void refreshWindows(WINDOW **mainWin, WINDOW **logWin, WINDOW **infoWin) {
+    int height, width, starty, startx;
 
-        mvaddch(y,x, win->border.topLeft);
-        mvaddch(y, x + width, win->border.topRight);
-        mvaddch(y - height, x, win->border.topSide);
-        mvaddch(y - height, x + width, win->border.rightSide);
+    // MAIN ATTRIBUTES
+    wbkgd(*mainWin, COLOR_PAIR(1));
 
+    // MAIN WINDOW POS MATH
+    height = LINES - (LINES / 3);
+    width = COLS / 2;
+    starty = LINES / 3;
+    startx = 0;
+
+    *mainWin = create_newwin(height, width, starty, startx);
+
+    // LOG ATTRIBUTES
+    wbkgd(*logWin, COLOR_PAIR(2));
+
+    // LOG WINDOW POS MATH
+    height = LINES - (LINES / 3);
+    width = COLS - (COLS / 2);
+    starty = LINES / 3;
+    startx = COLS / 2;
+
+    *logWin = create_newwin(height, width, starty, startx);
+
+    // INFO ATTRIBUTES
+    wbkgd(*infoWin, COLOR_PAIR(3));
+
+    // INFO WINDOW POS MATH
+    height = LINES / 3;
+    width = COLS;
+    starty = 0;
+    startx = 0;
+
+    *infoWin = create_newwin(height, width, starty, startx);
 }
+
+WINDOW *create_newwin(int height, int width, int starty, int startx) {
+    WINDOW *local_win;
+
+    local_win = newwin(height, width, starty, startx);
+
+    box(local_win, 0, 0);
+    wrefresh(local_win);
+
+    return local_win;
+}
+
