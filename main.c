@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <menu.h>
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+#define CTRLD 	4
+
+char *choices[] = {
+        "Quit",
+};
 WINDOW *create_newwin(int height, int width, int starty, int startx);
 void recalculateWindows(WINDOW **mainWin, WINDOW **logWin, WINDOW **infoWin);
 void refreshWindows(WINDOW **mainWin, WINDOW **logWin, WINDOW **infoWin);
@@ -11,6 +17,11 @@ void drawWinDetails(WINDOW **mainWin, WINDOW **logWin, WINDOW **infoWin);
 
 
 int main(int argc, char *argv[]) {
+        ITEM **items;
+        MENU *menu;
+        int choiceNumber, itemNumber;
+        ITEM *selectedItem;
+
 	WINDOW *mainWin;
         WINDOW *infoWin;
         WINDOW *logWin;
@@ -20,11 +31,40 @@ int main(int argc, char *argv[]) {
 
 	initscr();	
 	cbreak();
+        noecho();
 	keypad(stdscr, TRUE);
+
+        choiceNumber = ARRAY_SIZE(choices);
+        items = (ITEM **)calloc(choiceNumber, sizeof(ITEM *));
+
+        for(itemNumber = 0; itemNumber < choiceNumber; itemNumber++) {
+                items[itemNumber] = new_item(choices[itemNumber], choices[itemNumber]);
+        }
+        items[choiceNumber] = (ITEM *)NULL;
+
+        menu = new_menu((ITEM **)items);
+
+
+        starty = 0;
+        startx = 0;
+        width = COLS;
+        height = LINES - 1;
+        mainWin = create_newwin(height, width, starty, startx);
+        infoWin = create_newwin(height, width, starty, startx);
 
         recalculateWindows(&mainWin, &logWin, &infoWin);
         drawWinDetails(&mainWin, &logWin, &infoWin);
         refreshWindows(&mainWin, &logWin, &infoWin);
+    
+        set_menu_win(menu, mainWin);
+        set_menu_sub(menu, derwin(mainWin, 30, 30, 1, 1));
+        post_menu(menu);
+
+        set_menu_mark(menu, " * ");
+        wrefresh(mainWin);
+
+        curs_set(0);
+        refresh();
 	
 	while((ch = getch()) != 'q') {	
                 if(ch == KEY_RESIZE) {
@@ -52,8 +92,21 @@ int main(int argc, char *argv[]) {
                         refresh();
                 }
 
+                switch (ch) {
+                        case KEY_UP:
+                                menu_driver(menu, REQ_UP_ITEM);
+                                break;
+                        case KEY_DOWN:
+                                menu_driver(menu, REQ_DOWN_ITEM);
+                                break;
+                }
+
                 refresh();
 	}
+
+        free_item(items[0]);
+	free_item(items[1]);
+	free_menu(menu);
 	endwin();			/* End curses mode		  */
 	return 0;
 }
@@ -85,7 +138,7 @@ void recalculateWindows(WINDOW **mainWin, WINDOW **logWin, WINDOW **infoWin) {
 	*mainWin = create_newwin(height, width, starty, startx);
         
         //LOG ATTRIBUTES
-        wbkgd(*logWin, COLOR_PAIR(2));
+
         //LOG WINDOW POS MATH
 
         height = LINES - (LINES / 3);
